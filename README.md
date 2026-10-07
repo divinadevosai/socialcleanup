@@ -21,7 +21,6 @@ Instagram, LinkedIn and Threads are planned.
   <img src="docs/screenshots/4-done.png" width="200" alt="Finished">
 </p>
 
-> **Early version.** Social Cleanup is tested thoroughly against realistic copies of each site, but not yet against the live sites. Please try it on a few posts first.
 
 ## Install
 
