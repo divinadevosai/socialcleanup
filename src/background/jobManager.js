@@ -148,6 +148,29 @@ export function createJobManager({ store, adapter, platforms, sleep, now = Date.
     await store.setJob(newJob(job?.platform || 'reddit'));
   }
 
+  // When a cleanup finishes, erase what it no longer needs: the post list,
+  // the username and the activity log. Only posts that couldn't be deleted
+  // are kept, so "Try those again" still works.
+  async function finish(job, posts) {
+    // The user cleared everything (or reset) at the last moment: write nothing back.
+    if ((await store.getJob())?.id !== job.id) return;
+    const failedIds = new Set(job.failed.map((f) => f.id));
+    await store.setPosts(job.platform, [...posts.values()].filter((p) => failedIds.has(p.id)));
+    await store.setJob({
+      ...newJob(job.platform),
+      status: 'done',
+      deleted: job.deleted,
+      failed: job.failed,
+      options: job.options,
+      finishedAt: now(),
+    });
+  }
+
+  // "Clear all my data": stops any cleanup and erases everything stored.
+  async function clearAll() {
+    await store.clearAll();
+  }
+
   async function run() {
     if (running) return;
     running = true;
@@ -200,12 +223,11 @@ export function createJobManager({ store, adapter, platforms, sleep, now = Date.
         }
       }
 
-      job = await update({ status: 'done', finishedAt: now() });
-      await log(job, `Done. Deleted ${job.deleted}, failed ${job.failed.length}.`);
+      await finish(job, posts);
     } finally {
       running = false;
     }
   }
 
-  return { checkLogin, scan, importPosts, start, pause, resume, reset, disconnect, run, get running() { return running; } };
+  return { checkLogin, scan, importPosts, start, pause, resume, reset, disconnect, clearAll, run, get running() { return running; } };
 }

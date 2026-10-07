@@ -30,6 +30,8 @@ const ui = {
   confirming: false,
   understood: false,
   confirmStop: false,
+  confirmClear: false,
+  cleared: false,
   importStatus: '',
 };
 
@@ -111,12 +113,26 @@ function renderStepper() {
 }
 
 function accountBar() {
+  if (!job?.user) return '';
   const c = cfg();
   return html`<div class="account">
     ${tile(c.tile, 'small')}
     <span>Signed in as <strong>${escapeHtml(job.user)}</strong></span>
     ${['running', 'paused'].includes(job.status) ? '' : '<button class="link" data-action="disconnect">Switch</button>'}
   </div>`;
+}
+
+// "Clear all my data", with an are-you-sure step.
+function clearDataBlock() {
+  if (ui.cleared) {
+    return `<div class="notice calm" role="status">${ICON.check}<div><strong>All your data has been erased</strong><p>Nothing from Social Cleanup is stored in this browser any more.</p></div></div>`;
+  }
+  if (ui.confirmClear) {
+    return `<div class="notice warn">${ICON.alert}<div><strong>Erase everything Social Cleanup has stored in this browser?</strong>
+      <p>This removes any lists of posts, account names and progress. Backup files in your Downloads folder aren't affected.</p>
+      <div class="actions"><button class="danger" data-action="clearAll">Yes, erase everything</button><button data-action="cancelClear">Cancel</button></div></div></div>`;
+  }
+  return '<button class="link clear-data" data-action="askClear">Clear all my data</button>';
 }
 
 // ---------- step 1: choose account ----------
@@ -136,7 +152,8 @@ function chooseView() {
   return html`<h2 class="title">Which account do you want to clean up?</h2>
     <p class="lead">Make sure you're signed in to it in this browser.</p>
     <div class="platforms">${cards}${soon}</div>
-    <div class="notice calm">${ICON.lock}<div><strong>Private by design</strong><p>Everything happens on this computer. We never see your password or your posts, and nothing is deleted until you say so.</p></div></div>`;
+    <div class="notice calm">${ICON.lock}<div><strong>Private by design</strong><p>Everything happens on this computer. We never see your password or your posts, and nothing is deleted until you say so.</p></div></div>
+    ${clearDataBlock()}`;
 }
 
 function signInHelpView() {
@@ -399,8 +416,7 @@ function doneView() {
     .slice(0, 50)
     .map((f) => `${escapeHtml(f.id)}: ${escapeHtml(f.error)}`)
     .join('\n');
-  return html`${accountBar()}
-    <div class="center stack">
+  return html`<div class="center stack">
       <span class="big-check ${failed.length ? 'partial' : ''}">${failed.length ? ICON.alert : ICON.check}</span>
       <h2 class="title">${failed.length ? 'Finished' : 'All clean!'}</h2>
       <p class="huge">${job.deleted.toLocaleString()}</p>
@@ -409,12 +425,12 @@ function doneView() {
     ${failed.length ? `<div class="notice warn">${ICON.alert}<div><strong>${plural(failed.length, 'item')} couldn't be deleted</strong>
       <p>Often they were already gone. You can try them again.</p>
       <details class="small"><summary>Show which</summary><div class="log">${list}</div></details></div></div>` : ''}
-    <p class="hint">${ICON.lock} Your backup is in your Downloads folder.</p>
+    <p class="hint">${ICON.lock} Your list of posts and account details have been erased from this browser${failed.length ? ' (except the items above, so you can retry them)' : ''}. Your backup is in your Downloads folder.</p>
     <div class="actions">
       ${failed.length ? '<button class="primary" data-action="retryFailed">Try those again</button>' : ''}
-      <button class="${failed.length ? '' : 'primary'}" data-action="reset">Clean up more</button>
-      <button data-action="disconnect">Choose another account</button>
-    </div>`;
+      <button class="${failed.length ? '' : 'primary'}" data-action="disconnect">Start again</button>
+    </div>
+    ${clearDataBlock()}`;
 }
 
 // ---------- rendering ----------
@@ -474,6 +490,7 @@ function startScan() {
 
 const actions = {
   pick: (btn) => {
+    ui.cleared = false;
     ui.platform = btn.dataset.platform;
     ui.types = PLATFORMS[ui.platform].types.map((t) => t.id);
     ui.checking = true;
@@ -541,6 +558,22 @@ const actions = {
     send('reset');
   },
   reset: () => send('reset'),
+  askClear: () => {
+    ui.confirmClear = true;
+    render();
+  },
+  cancelClear: () => {
+    ui.confirmClear = false;
+    render();
+  },
+  clearAll: async () => {
+    ui.confirmClear = false;
+    ui.cleared = true;
+    posts = [];
+    ui.keepIds.clear();
+    await send('clearAll');
+    render();
+  },
   retryFailed: () => send('start', { ids: job.failed.map((f) => f.id), options: job.options }),
 };
 
@@ -630,6 +663,7 @@ async function onJob(newJob) {
   }
   if (statusChanged) {
     ui.confirmStop = false;
+    ui.confirmClear = false;
     if (job?.status !== 'connected') ui.importStatus = '';
   }
   if (job?.status === 'ready' && statusChanged) {

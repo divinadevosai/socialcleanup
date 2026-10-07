@@ -129,3 +129,58 @@ test('the extension asks for no more permissions than it needs', () => {
     assert.match(host, /^\*:\/\/(\*\.)?(reddit\.com|x\.com|twitter\.com|abs\.twimg\.com|facebook\.com)\/\*$/);
   }
 });
+
+test('finishing a cleanup erases the post list, username and log (keeps only failed items)', async () => {
+  const store = createMemoryStore();
+  const posts = ['a', 'b', 'c'].map((id) => ({ id, type: 'post', createdAt: 1, text: `secret ${id}` }));
+  const jobs = createJobManager({
+    store,
+    adapter: {
+      call: async (_p, method, args) => {
+        if (method === 'checkLogin') return { loggedIn: true, username: 'me', userId: '42' };
+        if (method === 'deletePost') return args.post.id === 'c' ? { ok: false, error: 'boom' } : { ok: true };
+      },
+    },
+    platforms: { reddit: { name: 'Reddit', limits: { delayMs: 0, maxPerHour: 10, scanDelayMs: 0 } } },
+    sleep: async () => {},
+  });
+  await jobs.checkLogin('reddit');
+  await jobs.importPosts({ posts });
+  await jobs.start({ ids: ['a', 'b', 'c'], options: {} });
+
+  const job = await store.getJob();
+  assert.equal(job.status, 'done');
+  assert.equal(job.deleted, 2);
+  assert.equal(job.user, null);
+  assert.equal(job.userId, null);
+  assert.deepEqual(job.log, []);
+  assert.deepEqual(job.queue, []);
+  assert.deepEqual((await store.getPosts('reddit')).map((p) => p.id), ['c'], 'only the failed item is kept, for retry');
+
+  // Retrying the failed item, then finishing again, leaves nothing behind.
+  await jobs.start({ ids: ['c'], options: {} });
+  assert.deepEqual((await store.getPosts('reddit')).map((p) => p.id), ['c']);
+});
+
+test('"Clear all my data" erases everything, even mid-cleanup', async () => {
+  const store = createMemoryStore();
+  const jobs = createJobManager({
+    store,
+    adapter: {
+      call: async (_p, method) => {
+        if (method === 'checkLogin') return { loggedIn: true, username: 'me' };
+        if (method === 'deletePost') {
+          await jobs.clearAll(); // user clicks "Clear all my data" while a delete is in flight
+          return { ok: true };
+        }
+      },
+    },
+    platforms: { reddit: { name: 'Reddit', limits: { delayMs: 0, maxPerHour: 10, scanDelayMs: 0 } } },
+    sleep: async () => {},
+  });
+  await jobs.checkLogin('reddit');
+  await jobs.importPosts({ posts: [{ id: 'a', type: 'post', createdAt: 1 }, { id: 'b', type: 'post', createdAt: 1 }] });
+  await jobs.start({ ids: ['a', 'b'], options: {} });
+  assert.equal(await store.getJob(), null, 'nothing written back after clearing');
+  assert.deepEqual(store.data.posts, {});
+});

@@ -58,7 +58,8 @@ X only shows your newest ~3,200 posts, so Social Cleanup uses the copy of your d
 - **No passwords and no API keys.** It uses the session you already have open in your browser.
 - **Minimal permissions.** It can only access reddit.com, x.com / twitter.com and facebook.com. It can't see any other site you visit.
 - **Websites can't control it.** Only the extension's own panel can start or change a cleanup.
-- **Your list of posts is wiped** from the extension when you start over or switch account. The backup files in your Downloads folder are yours to keep or delete.
+- **Nothing is kept after a cleanup.** When it finishes, the list of posts, your username and the activity log are erased from the browser automatically. (If a few posts couldn't be deleted, just those are kept so you can retry them.)
+- **"Clear all my data"** on the first and last screens erases everything Social Cleanup has stored, at any time. The backup files in your Downloads folder are yours to keep or delete.
 
 These protections are checked by automated tests on every change.
 

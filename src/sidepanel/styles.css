@@ -241,3 +241,4 @@ details.panel .grid2 { margin-top: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.5s; } * { transition: none !important; } }
 .small-hint { margin: 6px 0 0; font-size: 12px; }
+.clear-data { display: block; margin: 18px auto 0; font-size: 13px; color: var(--muted); text-decoration: underline; }

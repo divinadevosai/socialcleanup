@@ -17,6 +17,11 @@ export const chromeStore = {
   async setPosts(platform, posts) {
     await chrome.storage.local.set({ [`posts:${platform}`]: posts });
   },
+  // Erases everything the extension has stored in this browser.
+  async clearAll() {
+    await chrome.storage.local.clear();
+    await chrome.storage.session.clear();
+  },
 };
 
 export function createMemoryStore() {
@@ -34,6 +39,10 @@ export function createMemoryStore() {
     },
     async setPosts(platform, posts) {
       data.posts[platform] = structuredClone(posts);
+    },
+    async clearAll() {
+      data.job = null;
+      data.posts = {};
     },
   };
 }

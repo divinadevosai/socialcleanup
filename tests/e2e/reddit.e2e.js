@@ -93,7 +93,27 @@ await runE2E(
     assert.equal(downloads.length, 2);
     assert.ok(downloads.some((f) => f.endsWith('.json')) && downloads.some((f) => f.endsWith('.html')));
     assert.ok(await panel.getByText('items deleted from Reddit').isVisible());
+
+    // Privacy: once finished, the extension keeps no posts, username or log.
+    const stored = await panel.evaluate(() => chrome.storage.local.get(null));
+    assert.deepEqual(stored['posts:reddit'], [], 'post list wiped after finishing');
+    assert.equal(stored.job.user, null, 'username wiped after finishing');
+    assert.deepEqual(stored.job.log, [], 'activity log wiped after finishing');
+    assert.ok(!JSON.stringify(stored).includes('testuser'), 'username nowhere in storage');
+    assert.ok(!JSON.stringify(stored).includes('Old self post'), 'post text nowhere in storage');
+    console.log('✓ finished cleanup left no posts, username or log in storage');
     await panel.screenshot({ path: path.join(RESULTS, 'done.png'), fullPage: true });
-    console.log('✓ deleted', deleted, '| overwritten', edited, '| backups', downloads);
+
+    // "Clear all my data" asks first, then erases everything.
+    await panel.getByRole('button', { name: 'Clear all my data' }).click();
+    await panel.getByRole('button', { name: 'Yes, erase everything' }).waitFor();
+    await panel.screenshot({ path: path.join(RESULTS, 'clear-confirm.png'), fullPage: true });
+    await panel.getByRole('button', { name: 'Yes, erase everything' }).click();
+    await panel.getByText('All your data has been erased').waitFor();
+    assert.deepEqual(await panel.evaluate(() => chrome.storage.local.get(null)), {}, 'storage not empty after clearing');
+    assert.ok(await panel.getByText('Which account do you want to clean up?').isVisible());
+    await panel.screenshot({ path: path.join(RESULTS, 'cleared.png'), fullPage: true });
+    console.log('✓ "Clear all my data" emptied the extension\'s storage');
+    console.log('✓ deleted', deleted, '| overwritten', edited, '| backups', [...downloads]);
   },
 );

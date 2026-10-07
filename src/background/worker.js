@@ -114,6 +114,7 @@ const handlers = {
   resume: () => jobs.resume(),
   reset: () => jobs.reset(),
   disconnect: () => jobs.disconnect(),
+  clearAll: () => jobs.clearAll(),
 };
 
 // Lets the X adapter read x.com's public script bundle if CORS blocks it in
