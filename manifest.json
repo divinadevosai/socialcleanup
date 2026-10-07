@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Social Cleanup",
+  "version": "0.3.1",
+  "description": "Bulk-delete your old social media posts by date range. Everything runs locally in your browser.",
+  "permissions": ["storage", "unlimitedStorage", "sidePanel", "alarms"],
+  "host_permissions": [
+    "*://*.reddit.com/*",
+    "*://x.com/*",
+    "*://twitter.com/*",
+    "*://abs.twimg.com/*",
+    "*://*.facebook.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "action": {
+    "default_title": "Social Cleanup"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.reddit.com/*"],
+      "js": ["src/adapters/reddit.js", "src/content/index.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://x.com/*", "*://twitter.com/*"],
+      "js": ["src/adapters/x.js", "src/content/index.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.facebook.com/*"],
+      "js": ["src/content/dom-utils.js", "src/adapters/facebook.js", "src/content/index.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

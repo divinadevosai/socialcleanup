@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Activity log | Facebook</title>
+<style>
+  body { font: 15px system-ui; margin: 0; }
+  .row { min-height: 180px; border-bottom: 1px solid #ddd; padding: 12px; display: flex; justify-content: space-between; }
+  [aria-label="Action options"] { width: 32px; height: 32px; background: #eee; border-radius: 50%; cursor: pointer; }
+  [role="menu"] { position: absolute; background: #fff; border: 1px solid #ccc; padding: 4px; z-index: 5; }
+  [role="menuitem"] { padding: 8px; cursor: pointer; }
+  [role="dialog"] { position: fixed; top: 30%; left: 30%; background: #fff; border: 1px solid #333; padding: 20px; z-index: 6; }
+  [role="dialog"] [role="button"] { display: inline-block; padding: 6px 12px; margin: 4px; border: 1px solid #999; cursor: pointer; }
+</style>
+</head>
+<body>
+<div aria-label="Your profile"></div>
+<div role="main">
+  <h2>Your posts</h2>
+  <div id="list"></div>
+</div>
+<script>
+  // A fake Facebook Activity Log: date headings, rows with a "⋯" menu,
+  // infinite scroll in batches, and a confirm dialog before trashing.
+  window.__deleted = [];
+  const batches = [
+    [
+      ['h', 'March 3, 2019'],
+      ['r', 'p2019', 'You updated your status.', 'Too recent to delete', '9:15 AM'],
+      ['h', 'July 4, 2017'],
+      ['r', 'p2017a', 'You updated your status.', 'Fireworks tonight!', '8:30 PM'],
+      ['r', 'p2017b', 'You shared a link.', 'Wedding photos are up', '1:05 PM'],
+    ],
+    [
+      ['h', 'January 9, 2016'],
+      ['r', null, 'You updated your status.', 'A post with no permalink', '11:00 AM'],
+      ['r', 'p2016', 'You shared a memory.', 'Throwback', '7:45 AM'],
+    ],
+    [
+      ['h', 'May 1, 2012'],
+      ['r', 'p2012', 'You updated your status.', 'Ancient history', '10:00 AM'],
+    ],
+  ];
+  let next = 0;
+  const list = document.getElementById('list');
+
+  function closeMenus() { document.querySelectorAll('[role="menu"]').forEach((m) => m.remove()); }
+
+  function addBatch() {
+    if (next >= batches.length) return;
+    for (const item of batches[next++]) {
+      if (item[0] === 'h') {
+        const h = document.createElement('h3');
+        h.textContent = item[1];
+        list.append(h);
+        continue;
+      }
+      const [, id, summary, text, time] = item;
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.dataset.fakeId = id || 'nolink';
+      row.innerHTML = `<div><div>${summary}</div><div>${text}</div>${id ? `<a href="https://www.facebook.com/1000/posts/${id}">${time}</a>` : `<span>${time}</span>`}</div>`;
+      const btn = document.createElement('div');
+      btn.setAttribute('role', 'button');
+      btn.setAttribute('aria-label', 'Action options');
+      btn.onclick = () => openMenu(row, btn);
+      row.append(btn);
+      list.append(row);
+    }
+  }
+
+  function openMenu(row, btn) {
+    closeMenus();
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    const r = btn.getBoundingClientRect();
+    menu.style.top = `${r.bottom + scrollY}px`;
+    menu.style.left = `${r.left - 150}px`;
+    menu.innerHTML = '<div role="menuitem">Edit privacy</div><div role="menuitem">Move to trash<br><small>Items in your trash are deleted after 30 days.</small></div>';
+    menu.children[1].onclick = () => { closeMenus(); confirmTrash(row); };
+    document.body.append(menu);
+  }
+
+  function confirmTrash(row) {
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.innerHTML = '<p>Move to your trash?</p><div role="button">Cancel</div><div role="button">Move</div>';
+    dialog.children[1].onclick = () => dialog.remove();
+    dialog.children[2].onclick = () => {
+      dialog.remove();
+      setTimeout(() => { window.__deleted.push(row.dataset.fakeId); row.remove(); }, 300);
+    };
+    document.body.append(dialog);
+  }
+
+  addBatch();
+  addEventListener('scroll', () => {
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 50) setTimeout(addBatch, 400);
+  });
+</script>
+</body>
+</html>
