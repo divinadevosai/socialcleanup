@@ -125,6 +125,12 @@ test('the extension asks for no more permissions than it needs', () => {
   const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
   assert.deepEqual(manifest.permissions.sort(), ['alarms', 'sidePanel', 'storage', 'unlimitedStorage']);
   assert.equal(manifest.externally_connectable, undefined, 'websites must not be able to message the extension');
+  assert.equal(manifest.web_accessible_resources, undefined, 'no extension files exposed to websites');
+  const csp = manifest.content_security_policy?.extension_pages || '';
+  for (const rule of ["script-src 'self'", "object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'"]) {
+    assert.ok(csp.includes(rule), `CSP missing ${rule}`);
+  }
+  assert.ok(!/unsafe-eval|unsafe-inline|https?:/.test(csp.split(';').find((d) => d.trim().startsWith('script-src'))), 'scripts only from the extension itself');
   for (const host of manifest.host_permissions) {
     assert.match(host, /^\*:\/\/(\*\.)?(reddit\.com|x\.com|twitter\.com|abs\.twimg\.com|facebook\.com)\/\*$/);
   }
@@ -183,4 +189,26 @@ test('"Clear all my data" erases everything, even mid-cleanup', async () => {
   await jobs.start({ ids: ['a', 'b'], options: {} });
   assert.equal(await store.getJob(), null, 'nothing written back after clearing');
   assert.deepEqual(store.data.posts, {});
+});
+
+test('icons exist at every size the browser and stores need', async () => {
+  const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
+  for (const size of ['16', '32', '48', '128']) {
+    const file = manifest.icons[size];
+    const png = readFileSync(file);
+    assert.equal(png.toString('ascii', 1, 4), 'PNG', `${file} is a PNG`);
+    assert.equal(png.readUInt32BE(16), Number(size), `${file} width`);
+    assert.equal(png.readUInt32BE(20), Number(size), `${file} height`);
+  }
+});
+
+test('privacy policy covers every permission and host the extension uses', () => {
+  const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
+  const policy = readFileSync('PRIVACY.md', 'utf8').toLowerCase();
+  const names = { storage: 'storage', unlimitedStorage: 'unlimited storage', sidePanel: 'side panel', alarms: 'alarms' };
+  for (const p of manifest.permissions) assert.ok(policy.includes(names[p]), `policy doesn't explain "${p}"`);
+  for (const host of manifest.host_permissions) {
+    const domain = host.replace(/^\*:\/\/(\*\.)?/, '').replace(/\/\*$/, '');
+    assert.ok(policy.includes(domain), `policy doesn't mention ${domain}`);
+  }
 });

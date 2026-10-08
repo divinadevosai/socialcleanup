@@ -8,6 +8,11 @@ import { isFromContentScript, isFromExtensionPage, isXBundleUrl } from '../share
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
+// Only the extension's own pages and worker may read stored data. Content
+// scripts run inside the social sites' pages and never need it, so a
+// compromised site page can't read lists of posts from other sites.
+chrome.storage.local.setAccessLevel?.({ accessLevel: 'TRUSTED_CONTEXTS' }).catch(() => {});
+
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Chrome stops idle service workers after ~30s. Calling an extension API

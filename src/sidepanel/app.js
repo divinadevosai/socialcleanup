@@ -536,6 +536,7 @@ function startScan() {
 
 const actions = {
   guide: (btn) => {
+    if (!Object.hasOwn(GUIDES, btn.dataset.guide)) return;
     ui.cleared = false;
     ui.guide = btn.dataset.guide;
     ui.guideDone.clear();

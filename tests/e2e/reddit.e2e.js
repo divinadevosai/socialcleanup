@@ -66,6 +66,26 @@ await runE2E(
     await panel.getByText('testuser').waitFor();
     console.log('✓ signed in as testuser after "Try again"');
 
+    // Storage lock: the content script inside the Reddit page must not be able
+    // to read the extension's stored data (the panel stored the username).
+    const redditTab = panel.context().pages().find((p) => p.url().startsWith('https://old.reddit.com'));
+    const cdp = await panel.context().newCDPSession(redditTab);
+    const worlds = [];
+    cdp.on('Runtime.executionContextCreated', (e) => worlds.push(e.context));
+    await cdp.send('Runtime.enable');
+    await new Promise((r) => setTimeout(r, 300));
+    const contentWorld = worlds.find((c) => c.auxData?.type === 'isolated' && c.origin?.startsWith('chrome-extension://'));
+    assert.ok(contentWorld, 'found the content script world');
+    const inWorld = (expression) => cdp.send('Runtime.evaluate', { expression, contextId: contentWorld.id, awaitPromise: true, returnByValue: true });
+    const sanity = await inWorld('typeof chrome.runtime.id');
+    assert.equal(sanity.result.value, 'string', 'evaluating inside the content script');
+    const attempt = await inWorld('chrome.storage.local.get(null).then((d) => JSON.stringify(d))');
+    const leaked = attempt.result?.value || '';
+    assert.ok(attempt.exceptionDetails || !leaked.includes('testuser'), `content script read storage: ${leaked}`);
+    assert.ok(JSON.stringify(await panel.evaluate(() => chrome.storage.local.get('job'))).includes('testuser'), 'panel can still read');
+    await cdp.detach();
+    console.log('✓ content scripts inside websites cannot read the extension\'s storage');
+
     // 2. Scan 2015–2018
     await pickDates(panel, '2015-01-01', '2018-12-31');
     await panel.screenshot({ path: path.join(RESULTS, 'find.png'), fullPage: true });

@@ -7,5 +7,5 @@ version=$(node -p "require('./manifest.json').version")
 mkdir -p dist
 out="dist/social-cleanup-v$version.zip"
 rm -f "$out"
-git archive --format=zip --prefix=social-cleanup/ -o "$out" HEAD manifest.json src LICENSE README.md
+git archive --format=zip --prefix=social-cleanup/ -o "$out" HEAD manifest.json src icons LICENSE README.md
 echo "$out"

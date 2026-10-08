@@ -68,7 +68,7 @@ X only shows your newest ~3,200 posts, so Social Cleanup uses the copy of your d
 - **Nothing is kept after a cleanup.** When it finishes, the list of posts, your username and the activity log are erased from the browser automatically. (If a few posts couldn't be deleted, just those are kept so you can retry them.)
 - **"Clear all my data"** on the first and last screens erases everything Social Cleanup has stored, at any time. The backup files in your Downloads folder are yours to keep or delete.
 
-These protections are checked by automated tests on every change.
+These protections are checked by automated tests on every change. Read the full [Privacy Policy](PRIVACY.md).
 
 ## FAQ
 
