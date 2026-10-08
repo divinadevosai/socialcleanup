@@ -73,8 +73,5 @@ export const PLATFORMS = {
   },
 };
 
-export const COMING_SOON = [
-  { name: 'Instagram', tile: { letter: 'I', color: '#c13584' } },
-  { name: 'LinkedIn', tile: { letter: 'in', color: '#0a66c2' } },
-  { name: 'Threads', tile: { letter: '@', color: '#333333' } },
-];
+// Sites shown as "Coming soon" on the first screen (none right now).
+export const COMING_SOON = [];

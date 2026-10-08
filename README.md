@@ -6,13 +6,16 @@ Social Cleanup is a free browser extension. You pick an account, choose how far 
 
 It runs entirely on your own computer. It never asks for your password, and nothing is sent anywhere except the delete requests to the site itself.
 
-| Site | What it can delete |
-|---|---|
-| **Reddit** | Posts and comments |
-| **X / Twitter** | Posts, replies, reposts and likes |
-| **Facebook** | Posts (moved to Facebook's trash first, so you have 30 days to change your mind) |
+| Site | How | What |
+|---|---|---|
+| **Reddit** | Automatic | Posts and comments |
+| **X / Twitter** | Automatic | Posts, replies, reposts and likes |
+| **Facebook** | Automatic | Posts (moved to Facebook's trash first, so you have 30 days to change your mind) |
+| **Instagram** | Guided | Posts, reels and comments, using Instagram's own bulk delete with a date filter |
+| **LinkedIn** | Guided | Posts and comments, plus a quick profile tidy-up for recruiters |
+| **Threads** | Guided | Posts and replies, or make your profile private in seconds |
 
-Instagram, LinkedIn and Threads are planned.
+**Guided** sites don't allow other tools to delete posts safely, so Social Cleanup walks you through each site's own tools step by step, with buttons that open the right pages. It never accesses those sites itself.
 
 <p>
   <img src="docs/screenshots/1-choose.png" width="200" alt="Choose which account to clean up">
@@ -44,6 +47,10 @@ Click the **Social Cleanup** icon to open the panel, then follow the four steps:
 3. **Review:** see everything that was found. Untick anything you want to keep, or use *Keep some posts safe* to protect posts that mention certain words.
 4. **Delete:** confirm, and a backup downloads first. Then it works through your posts in the background. You can pause, stop or close the panel; just keep the browser open.
 
+### Instagram, LinkedIn and Threads: guided cleanup
+
+Pick one of these and you'll get a short checklist: save a copy of your data, open the right page, filter or select your old posts, and delete them. Tick each step as you go. Nothing is stored and the extension doesn't access these sites. It just opens their pages for you.
+
 ### X / Twitter: one extra step
 
 X only shows your newest ~3,200 posts, so Social Cleanup uses the copy of your data that X gives you:
@@ -56,7 +63,7 @@ X only shows your newest ~3,200 posts, so Social Cleanup uses the copy of your d
 
 - **Nothing leaves your computer** except the delete requests sent straight to the site you're cleaning up. No servers, no analytics, no tracking.
 - **No passwords and no API keys.** It uses the session you already have open in your browser.
-- **Minimal permissions.** It can only access reddit.com, x.com / twitter.com and facebook.com. It can't see any other site you visit.
+- **Minimal permissions.** It can only access reddit.com, x.com / twitter.com and facebook.com. It can't see any other site you visit, and it never accesses Instagram, LinkedIn or Threads (guided mode just opens their pages).
 - **Websites can't control it.** Only the extension's own panel can start or change a cleanup.
 - **Nothing is kept after a cleanup.** When it finishes, the list of posts, your username and the activity log are erased from the browser automatically. (If a few posts couldn't be deleted, just those are kept so you can retry them.)
 - **"Clear all my data"** on the first and last screens erases everything Social Cleanup has stored, at any time. The backup files in your Downloads folder are yours to keep or delete.

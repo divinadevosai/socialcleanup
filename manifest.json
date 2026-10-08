@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Social Cleanup",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Bulk-delete your old social media posts by date range. Everything runs locally in your browser.",
   "permissions": ["storage", "unlimitedStorage", "sidePanel", "alarms"],
   "host_permissions": [

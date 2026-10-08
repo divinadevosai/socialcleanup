@@ -1,11 +1,11 @@
 {
   "name": "social-cleanup",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "test:e2e": "node tests/e2e/reddit.e2e.js && node tests/e2e/x.e2e.js && node tests/e2e/facebook.e2e.js",
+    "test:e2e": "node tests/e2e/reddit.e2e.js && node tests/e2e/x.e2e.js && node tests/e2e/facebook.e2e.js && node tests/e2e/guided.e2e.js",
     "package": "sh scripts/package.sh"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ import { applyFilters, dateInputToMs } from '../shared/filters.js';
 import { buildBackupHtml, buildBackupJson, escapeHtml } from '../shared/backup.js';
 import { readXArchive } from '../shared/xArchive.js';
 import { safeUrl } from '../shared/security.js';
+import { GUIDES } from '../shared/guides.js';
 
 const ARCHIVE_READERS = { x: readXArchive };
 const PAGE_SIZE = 200;
@@ -32,6 +33,8 @@ const ui = {
   confirmStop: false,
   confirmClear: false,
   cleared: false,
+  guide: null, // id of the guided platform being shown
+  guideDone: new Set(),
   importStatus: '',
 };
 
@@ -105,6 +108,10 @@ function currentStep() {
 }
 
 function renderStepper() {
+  if (ui.guide) {
+    stepper.innerHTML = '';
+    return;
+  }
   const at = currentStep();
   stepper.innerHTML = STEPS.map(
     (label, i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}" ${i === at ? 'aria-current="step"' : ''}>
@@ -148,10 +155,18 @@ function chooseView() {
       </button>`,
     )
     .join('');
+  const guided = Object.values(GUIDES)
+    .map(
+      (g) => `<button class="platform" data-action="guide" data-guide="${g.id}">
+        ${tile(g.tile)}<span><strong>${escapeHtml(g.name)}</strong><small>${escapeHtml(g.blurb)}</small></span>
+        <span class="tag">Guided</span>
+      </button>`,
+    )
+    .join('');
   const soon = COMING_SOON.map((p) => `<div class="platform soon" aria-disabled="true">${tile(p.tile)}<span><strong>${escapeHtml(p.name)}</strong><small>Coming soon</small></span></div>`).join('');
   return html`<h2 class="title">Which account do you want to clean up?</h2>
     <p class="lead">Make sure you're signed in to it in this browser.</p>
-    <div class="platforms">${cards}${soon}</div>
+    <div class="platforms">${cards}${guided}${soon}</div>
     <div class="notice calm">${ICON.lock}<div><strong>Private by design</strong><p>Everything happens on this computer. We never see your password or your posts, and nothing is deleted until you say so.</p></div></div>
     ${clearDataBlock()}`;
 }
@@ -173,6 +188,37 @@ function signInHelpView() {
       </div>
       <button class="link back" data-action="disconnect">${ICON.back} Choose a different account</button>
     </div>`;
+}
+
+// ---------- guided platforms ----------
+
+function guideView() {
+  const g = GUIDES[ui.guide];
+  const n = g.steps.length;
+  const done = g.steps.filter((_, i) => ui.guideDone.has(i)).length;
+  const steps = g.steps
+    .map((s, i) => {
+      const url = s.url && safeUrl(s.url);
+      return `<li class="gstep ${ui.guideDone.has(i) ? 'done' : ''}">
+        <label class="gcheck"><input type="checkbox" data-step="${i}" ${ui.guideDone.has(i) ? 'checked' : ''} aria-label="Mark step ${i + 1} as done"><span class="gnum">${ui.guideDone.has(i) ? ICON.check : i + 1}</span></label>
+        <div class="gbody"><strong>${escapeHtml(s.title)}</strong><p>${escapeHtml(s.text)}</p>
+          ${url ? `<button class="open-step" data-action="openStep" data-url="${escapeHtml(url)}">${escapeHtml(s.open || 'Open')} <span aria-hidden="true">↗</span></button>` : ''}</div>
+      </li>`;
+    })
+    .join('');
+  return html`<div class="account">
+      ${tile(g.tile, 'small')}
+      <span><strong>${escapeHtml(g.name)}</strong> · guided cleanup</span>
+      <button class="link" data-action="leaveGuide">Back</button>
+    </div>
+    <h2 class="title">Clean up ${escapeHtml(g.name)}</h2>
+    <p class="lead">${escapeHtml(g.why)}</p>
+    <ol class="guide">${steps}</ol>
+    <p class="hint" id="guideProgress" aria-live="polite">${ICON.check} ${done} of ${n} steps done</p>
+    ${done === n ? `<div class="notice calm" role="status">${ICON.check}<div><strong>All clean!</strong><p>Nice work. Your ${escapeHtml(g.name)} is tidied up.</p></div></div>` : ''}
+    <div class="notice tip"><div><strong>Tip</strong><p>${escapeHtml(g.tip)}</p></div></div>
+    <p class="hint">${ICON.lock} Social Cleanup doesn't access ${escapeHtml(g.name)}. It only opens ${escapeHtml(g.name)} pages for you.</p>
+    <button class="link back" data-action="leaveGuide">${ICON.back} Choose a different account</button>`;
 }
 
 // ---------- step 2: find posts ----------
@@ -446,7 +492,7 @@ function render() {
     paused: progressView,
     done: doneView,
   };
-  app.innerHTML = (views[status] || chooseView)();
+  app.innerHTML = ui.guide && status === 'idle' ? guideView() : (views[status] || chooseView)();
   renderStepper();
   lastStatus = status;
 }
@@ -489,6 +535,22 @@ function startScan() {
 }
 
 const actions = {
+  guide: (btn) => {
+    ui.cleared = false;
+    ui.guide = btn.dataset.guide;
+    ui.guideDone.clear();
+    render();
+    window.scrollTo(0, 0);
+  },
+  leaveGuide: () => {
+    ui.guide = null;
+    ui.guideDone.clear();
+    render();
+  },
+  openStep: (btn) => {
+    const url = safeUrl(btn.dataset.url);
+    if (url) chrome.tabs.create({ url });
+  },
   pick: (btn) => {
     ui.cleared = false;
     ui.platform = btn.dataset.platform;
@@ -584,7 +646,12 @@ app.addEventListener('click', (e) => {
 
 app.addEventListener('change', (e) => {
   const t = e.target;
-  if (t.dataset.id) {
+  if (t.dataset.step !== undefined) {
+    const i = Number(t.dataset.step);
+    t.checked ? ui.guideDone.add(i) : ui.guideDone.delete(i);
+    render();
+    app.querySelector(`[data-step="${i}"]`)?.focus();
+  } else if (t.dataset.id) {
     t.checked ? ui.keepIds.delete(t.dataset.id) : ui.keepIds.add(t.dataset.id);
     t.closest('.item').classList.toggle('kept', !t.checked);
     refreshSelection();
